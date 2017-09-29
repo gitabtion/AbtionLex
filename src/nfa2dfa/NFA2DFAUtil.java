@@ -5,6 +5,8 @@ import models.NFAModel;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import static sun.jvm.hotspot.debugger.win32.coff.DebugVC50X86RegisterEnums.TAG;
+
 /**
  * @author abtion.
  * @since 17/9/28 18:38.
@@ -19,6 +21,7 @@ public class NFA2DFAUtil {
         statusCount = 0;
         dfa = new NFAModel();
         nfa2dfaMapping = new HashMap<>();
+        statusSet = new HashSet<>();
     }
 
     /**
@@ -35,41 +38,42 @@ public class NFA2DFAUtil {
         statusSet.add(statusTemp);
 
         //s属性赋值
-        nfaModel.getS().add(String.valueOf(statusTemp));
+        dfa.getS().add(nfa2dfaMapping.get(String.valueOf(statusTemp)));
 
         //sigma属性赋值
         dfa.setSigma(nfaModel.getSigma());
 
         for (HashSet<String> status : statusSet) {
+            // TODO: 17/9/29 没有完全遍历statusSet
             String statusKey = status.toString();
             for (String sigmaElement : nfaModel.getSigma()) {
                 HashSet<String> newStatus;  //与DFA某一状态对应的NFA状态集
-                newStatus = movedSetOf(sigmaElement, nfaModel.getF(),status);
+                newStatus = movedSetOf(sigmaElement, nfaModel.getF(), status);
                 newStatus = epsilonCloseSetOf(nfaModel.getF(), newStatus);
-                if (newStatus.size()!=0&&statusSet.add(newStatus)) {
+                if (newStatus.size() != 0 && statusSet.add(newStatus)) {
                     nfa2dfaMapping.put(newStatus.toString(), String.valueOf(++statusCount));
                 }
-
+                System.out.println(newStatus.toString());
                 //储存映射关系，当该状态集不存在该sigmaElement弧时该如何处理？
-                if (newStatus.size()!=0){
+                if (newStatus.size() != 0) {
                     HashSet<String> rightStatus = new HashSet<>();  //DFA的状态的Set表示
                     rightStatus.add(String.valueOf(statusCount));
                     HashMap<String, HashSet<String>> tempMapping = new HashMap<>();
-                    tempMapping.put(newStatus.toString(), rightStatus);
-                    dfa.getF().put(statusKey, tempMapping);
+                    tempMapping.put(sigmaElement, rightStatus);
+                    dfa.getF().put(String.valueOf(statusCount), tempMapping);
                 }
             }
 
             //z属性赋值
-            for (String zElement:nfaModel.getZ()){
-                if (status.contains(zElement)){
-                    nfaModel.getZ().add(nfa2dfaMapping.get(status.toString()));
+            for (String zElement : nfaModel.getZ()) {
+                if (status.contains(zElement)) {
+                    dfa.getZ().add(nfa2dfaMapping.get(status.toString()));
                 }
             }
 
         }
         //k属性赋值
-        for (String str:nfa2dfaMapping.values()){
+        for (String str : nfa2dfaMapping.values()) {
             dfa.getK().add(str);
         }
 
@@ -85,16 +89,21 @@ public class NFA2DFAUtil {
      */
     private HashSet<String> epsilonCloseSetOf(HashMap<String, HashMap<String, HashSet<String>>> f, HashSet<String> movedSet) {
         int count = 0;
-        for (String element:movedSet){
-            HashSet<String> rightSet = f.get(element).get("ep");
-            for (String status:rightSet){
-                movedSet.add(status);
+        for (String element : movedSet) {
+            if (f.get(element) != null) {
+                HashSet<String> rightSet = f.get(element).get("ep");
+                if (rightSet != null) {
+                    for (String status : rightSet) {
+                        movedSet.add(status);
+                    }
+                }
+
             }
-            if (++count==movedSet.size()){
+            if (++count == movedSet.size()) {
                 return movedSet;
             }
         }
-        return epsilonCloseSetOf(f,movedSet);
+        return epsilonCloseSetOf(f, movedSet);
     }
 
     /**
@@ -102,18 +111,25 @@ public class NFA2DFAUtil {
      *
      * @param f            映射集
      * @param sigmaElement 弧上元素，移动的因变量之一
-     * @param oldSet  初始状态集
+     * @param oldSet       初始状态集
      * @return 移动后的临时状态集
      */
     private HashSet<String> movedSetOf(String sigmaElement, HashMap<String, HashMap<String, HashSet<String>>> f, HashSet<String> oldSet) {
         HashSet<String> newSet = (HashSet<String>) oldSet.clone();
-        for (String element:oldSet){
-            HashSet<String> rightSet = f.get(element).get(sigmaElement);
-            for (String status:rightSet){
-                newSet.add(status);
+        for (String element : oldSet) {
+            if (f.get(element) != null) {
+                HashSet<String> rightSet = f.get(element).get(sigmaElement);
+                if (rightSet != null) {
+                    for (String status : rightSet) {
+                        newSet.add(status);
+                    }
+                }
+            }
+            if (oldSet.size() == newSet.size()) {
+                return newSet;
             }
         }
-        return movedSetOf(sigmaElement,f,newSet);
+        return movedSetOf(sigmaElement, f, newSet);
     }
 
 }

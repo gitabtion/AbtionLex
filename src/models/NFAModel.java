@@ -25,7 +25,7 @@ public class NFAModel {
     public NFAModel() {
         k = new HashSet<>();
         sigma = new HashSet<>();
-        k = new HashSet<>();
+        f = new HashMap<>();
         s = new HashSet<>();
         z = new HashSet<>();
     }
@@ -92,5 +92,16 @@ public class NFAModel {
         result = 31 * result + (s != null ? s.hashCode() : 0);
         result = 31 * result + (z != null ? z.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        String string = "K:";
+        string = string+k.toString();
+        string = string+"\nSIGMA:"+sigma.toString();
+        string = string+"\nF:"+f.toString();
+        string = string+"\nS:"+s.toString();
+        string = string+"\nZ:"+z.toString()+"\n";
+        return string;
     }
 }
