@@ -33,7 +33,6 @@ public class test {
         HashMap<String,HashSet<String>> tempMap1 = new HashMap<>();
         tempSet1.add("2");
         tempMap1.put("a",tempSet1);
-        tempMap1.put("b",tempSet1);
         nfa.getF().put("1",tempMap1);
 
 
@@ -41,6 +40,7 @@ public class test {
         HashMap<String,HashSet<String>> tempMap3 = new HashMap<>();
         tempSet3.add("1");
         tempMap3.put("ep",tempSet3);
+        tempMap3.put("b",tempSet3);
         nfa.getF().put("2",tempMap3);
 
         HashSet<String> tempSet4 = new HashSet<>();
@@ -53,6 +53,8 @@ public class test {
 
         NFA2DFAUtil util = new NFA2DFAUtil();
         dfa = util.getDFAOf(nfa);
-        System.out.println(dfa);
+        System.out.println(dfa.toString());
+
+        util.printTest();
     }
 }

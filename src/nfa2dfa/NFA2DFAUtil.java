@@ -43,35 +43,8 @@ public class NFA2DFAUtil {
         //sigma属性赋值
         dfa.setSigma(nfaModel.getSigma());
 
-        for (HashSet<String> status : statusSet) {
-            // TODO: 17/9/29 没有完全遍历statusSet
-            String statusKey = status.toString();
-            for (String sigmaElement : nfaModel.getSigma()) {
-                HashSet<String> newStatus;  //与DFA某一状态对应的NFA状态集
-                newStatus = movedSetOf(sigmaElement, nfaModel.getF(), status);
-                newStatus = epsilonCloseSetOf(nfaModel.getF(), newStatus);
-                if (newStatus.size() != 0 && statusSet.add(newStatus)) {
-                    nfa2dfaMapping.put(newStatus.toString(), String.valueOf(++statusCount));
-                }
-                System.out.println(newStatus.toString());
-                //储存映射关系，当该状态集不存在该sigmaElement弧时该如何处理？
-                if (newStatus.size() != 0) {
-                    HashSet<String> rightStatus = new HashSet<>();  //DFA的状态的Set表示
-                    rightStatus.add(String.valueOf(statusCount));
-                    HashMap<String, HashSet<String>> tempMapping = new HashMap<>();
-                    tempMapping.put(sigmaElement, rightStatus);
-                    dfa.getF().put(String.valueOf(statusCount), tempMapping);
-                }
-            }
+        statusSet = traversalStatus(statusSet, nfaModel);
 
-            //z属性赋值
-            for (String zElement : nfaModel.getZ()) {
-                if (status.contains(zElement)) {
-                    dfa.getZ().add(nfa2dfaMapping.get(status.toString()));
-                }
-            }
-
-        }
         //k属性赋值
         for (String str : nfa2dfaMapping.values()) {
             dfa.getK().add(str);
@@ -115,8 +88,10 @@ public class NFA2DFAUtil {
      * @return 移动后的临时状态集
      */
     private HashSet<String> movedSetOf(String sigmaElement, HashMap<String, HashMap<String, HashSet<String>>> f, HashSet<String> oldSet) {
-        HashSet<String> newSet = (HashSet<String>) oldSet.clone();
+        HashSet<String> newSet = new HashSet<>();
+        int count =0;
         for (String element : oldSet) {
+            count++;
             if (f.get(element) != null) {
                 HashSet<String> rightSet = f.get(element).get(sigmaElement);
                 if (rightSet != null) {
@@ -125,11 +100,50 @@ public class NFA2DFAUtil {
                     }
                 }
             }
-            if (oldSet.size() == newSet.size()) {
-                return newSet;
+
+        }
+        return newSet;
+    }
+
+    private HashSet<HashSet<String>> traversalStatus(HashSet<HashSet<String>> oldStatusSet, NFAModel nfaModel) {
+        HashSet<HashSet<String>> statusSet = (HashSet<HashSet<String>>) oldStatusSet.clone();
+        for (HashSet<String> status : statusSet) {
+            for (String sigmaElement : nfaModel.getSigma()) {
+                HashSet<String> newStatus;  //与DFA某一状态对应的NFA状态集
+                newStatus = movedSetOf(sigmaElement, nfaModel.getF(), status);
+                // TODO: 17/10/2 status没有变更成功！
+                newStatus = epsilonCloseSetOf(nfaModel.getF(), newStatus);
+                if (newStatus.size() != 0 && oldStatusSet.add(newStatus)) {
+                    nfa2dfaMapping.put(newStatus.toString(), String.valueOf(++statusCount));
+                }
+                System.out.println(newStatus.toString());
+                //储存映射关系，当该状态集不存在该sigmaElement弧时该如何处理？
+                if (newStatus.size() != 0) {
+                    HashSet<String> rightStatus = new HashSet<>();  //DFA的状态的Set表示
+                    rightStatus.add(String.valueOf(statusCount));
+                    HashMap<String, HashSet<String>> tempMapping = new HashMap<>();
+                    tempMapping.put(sigmaElement, rightStatus);
+                    dfa.getF().put(String.valueOf(statusCount), tempMapping);
+                }
+            }
+
+            //z属性赋值
+            for (String zElement : nfaModel.getZ()) {
+                if (status.contains(zElement)) {
+                    dfa.getZ().add(nfa2dfaMapping.get(status.toString()));
+                }
+            }
+
+            if (this.statusSet.size() == statusSet.size()) {
+                return this.statusSet;
             }
         }
-        return movedSetOf(sigmaElement, f, newSet);
+
+        return traversalStatus(oldStatusSet, nfaModel);
+    }
+
+    public void printTest(){
+        System.out.println(statusSet.toString());
     }
 
 }
